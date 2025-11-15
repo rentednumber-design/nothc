@@ -1,6 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { retrieveLaunchParams } from '@telegram-apps/sdk';
+
+interface LaunchParams {
+  initData?: {
+    user?: User;
+    // Add other properties from initData if needed
+  };
+}
 
 interface User {
   id: number;
@@ -12,59 +20,37 @@ interface User {
 
 export default function UserInfo() {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    const webApp = (window as any).Telegram?.WebApp;
-    if (!webApp) {
-      setError(true);
-      setLoading(false);
-      return;
+    // This code only runs on the client side
+    try {
+      const { initData } = retrieveLaunchParams() as LaunchParams;
+      if (initData?.user) {
+        setUser(initData.user);
+      }
+    } catch (error) {
+      console.error('Error retrieving Telegram user data:', error);
     }
-
-    webApp.ready();
-    webApp.expand();
-
-    const initData = webApp.initData;
-    if (!initData) {
-      setError(true);
-      setLoading(false);
-      return;
-    }
-
-    fetch('/api/validate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ initData }),
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (data.valid && data.user) setUser(data.user);
-        else setError(true);
-      })
-      .catch(() => setError(true))
-      .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <p>Loading...</p>;
-  if (error) return <p>Failed to load user data.</p>;
+  // Handle loading state consistently between server and client
+  if (typeof window === 'undefined' || !user) {
+    return <div className="p-6 bg-transparent rounded-lg shadow text-center">Loading user data...</div>;
+  }
 
   return (
-    <div className="p-6 bg-white rounded-lg shadow">
+    <div className="p-6 bg-transparent rounded-lg shadow text-center">
       <h2 className="text-xl font-bold mb-4">Your Telegram Profile</h2>
-      {user?.photo_url && (
+      {user.photo_url && (
         <img
-          src={user?.photo_url}
-          alt="Avatar"
-          className="w-16 h-16 rounded-full mb-4"
+          src={user.photo_url}
+          alt="Profile"
+          className="mx-auto rounded-full w-24 h-24 mb-4"
         />
       )}
-      <p><strong>ID:</strong> {user?.id}</p>
-      <p><strong>Username:</strong> @{user?.username || 'Not set'}</p>
-      <p><strong>Name:</strong> {user?.first_name} {user?.last_name}</p>
+      <p><strong>ID:</strong> {user.id}</p>
+      <p><strong>Username:</strong> @{user.username || 'Not set'}</p>
+      <p><strong>Name:</strong> {user.first_name} {user.last_name}</p>
     </div>
   );
 }
