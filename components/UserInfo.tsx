@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 interface User {
   id: number;
   username?: string;
   first_name: string;
   last_name?: string;
+  photo_url?: string;
 }
 
 export default function UserInfo() {
@@ -34,19 +35,15 @@ export default function UserInfo() {
       return;
     }
 
-    // Validate server-side
     fetch('/api/validate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ initData }),
     })
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.valid && data.user) {
-          setUser(data.user);
-        } else {
-          setError(true);
-        }
+      .then(res => res.json())
+      .then(data => {
+        if (data.valid && data.user) setUser(data.user);
+        else setError(true);
       })
       .catch(() => setError(true))
       .finally(() => setLoading(false));
@@ -58,6 +55,13 @@ export default function UserInfo() {
   return (
     <div className="p-6 bg-white rounded-lg shadow">
       <h2 className="text-xl font-bold mb-4">Your Telegram Profile</h2>
+      {user?.photo_url && (
+        <img
+          src={user?.photo_url}
+          alt="Avatar"
+          className="w-16 h-16 rounded-full mb-4"
+        />
+      )}
       <p><strong>ID:</strong> {user?.id}</p>
       <p><strong>Username:</strong> @{user?.username || 'Not set'}</p>
       <p><strong>Name:</strong> {user?.first_name} {user?.last_name}</p>
