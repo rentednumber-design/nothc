@@ -1,15 +1,43 @@
-// src/app/page.tsx
-import UserInfo from '@/components/UserInfo';
-
+"use client"
+import { useEffect, useState } from "react";
+import WebApp from "@twa-dev/sdk";
+interface UserData {
+    id: number;
+    first_name: string;
+    last_name?: string;
+    username?: string;
+    photo_url?: string;
+    language_code: string;
+    is_premium?: boolean;
+}
 export default function Home() {
+  const [userData, setUserData] = useState<UserData | null>(null);
+  useEffect(() => {
+    if(WebApp.initDataUnsafe.user){
+
+      setUserData(WebApp.initDataUnsafe.user as UserData);
+    }
+  }, []);
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-4">
-      <div className="max-w-md w-full">
-        <h1 className="text-2xl font-bold text-center mb-6">
-          My Telegram Mini App
-        </h1>
-        <UserInfo />
-      </div>
+    <>
+    <main className="p-4">
+      {
+        userData ? (
+          <div>
+            <img src={userData.photo_url} alt="" />
+            <h1>{userData.first_name}</h1>
+            <p>{userData.last_name}</p>
+            <p>{userData.username}</p>
+            <p>{userData.language_code}</p>
+            <p>{userData.is_premium}</p>
+          </div>
+        ) : (
+          <div>
+            <p>No user data</p>
+          </div>
+        )
+      }
     </main>
+    </>
   );
 }
