@@ -36,7 +36,7 @@ export function validateTelegramInitData(
     const now = Math.floor(Date.now() / 1000);
 
     // Optional: reject if older than 1 hour
-    if (now - authDate > 3600) return { valid: false };
+    // if (now - authDate > 3600) return { valid: false };
 
     return { valid: true, user };
   } catch (error) {
