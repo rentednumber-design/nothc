@@ -6,6 +6,7 @@ import { retrieveLaunchParams } from '@telegram-apps/sdk';
 interface LaunchParams {
   initData?: {
     user?: User;
+    initDataRaw?: string;
     // Add other properties from initData if needed
   };
 }
@@ -28,6 +29,7 @@ export default function UserInfo() {
       if (initData?.user) {
         setUser(initData.user);
       }
+      console.log(initData || 'No initData');
     } catch (error) {
       console.error('Error retrieving Telegram user data:', error);
     }
