@@ -1,6 +1,5 @@
 "use client"
 import { useEffect, useState } from "react";
-import WebApp from "@twa-dev/sdk";
 interface UserData {
     id: number;
     first_name: string;
@@ -13,10 +12,18 @@ interface UserData {
 export default function Home() {
   const [userData, setUserData] = useState<UserData | null>(null);
   useEffect(() => {
-    if(WebApp.initDataUnsafe.user){
-
-      setUserData(WebApp.initDataUnsafe.user as UserData);
-    }
+    let mounted = true;
+    const load = async () => {
+      if (typeof window === "undefined") return;
+      const { default: WebApp } = await import("@twa-dev/sdk");
+      if (WebApp?.initDataUnsafe?.user && mounted) {
+        setUserData(WebApp.initDataUnsafe.user as UserData);
+      }
+    };
+    load();
+    return () => {
+      mounted = false;
+    };
   }, []);
   return (
     <>
