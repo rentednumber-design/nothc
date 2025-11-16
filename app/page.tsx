@@ -53,7 +53,7 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-purple-300 via-purple-200 to-purple-100 pb-8">
+    <div className="min-h-screen bg-linear-to-br from-purple-300 via-purple-500 to-purple-100 pb-8">
       {/* Header */}
       <div className="px-6 pt-12 pb-6">
         <div className="flex items-center gap-3">
