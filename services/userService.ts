@@ -200,3 +200,22 @@ export const getUserRecentResults = async (
         return { data: null, error };
     }
 };
+
+/**
+ * Get leaderboard (top users by rating)
+ */
+export const getLeaderboard = async (limit: number = 50): Promise<{ data: User[] | null; error: any }> => {
+    try {
+        const { data, error } = await supabase
+            .from('users')
+            .select('*')
+            .order('rating', { ascending: false })
+            .limit(limit);
+
+        if (error) throw error;
+        return { data, error: null };
+    } catch (error) {
+        console.error('Error fetching leaderboard:', error);
+        return { data: null, error };
+    }
+};

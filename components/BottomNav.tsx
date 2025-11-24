@@ -1,6 +1,6 @@
 'use client';
 
-import { Home, PlusCircle, Gamepad2 } from 'lucide-react';
+import { Home, PlusCircle, Gamepad2, Trophy } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
@@ -29,6 +29,7 @@ export default function BottomNav() {
         <NavItem href="/" icon={Home} label="Home" />
         <NavItem href="/create" icon={PlusCircle} label="Create" />
         <NavItem href="/play" icon={Gamepad2} label="Play" />
+        <NavItem href="/leaderboard" icon={Trophy} label="Rank" />
       </div>
     </nav>
   );
