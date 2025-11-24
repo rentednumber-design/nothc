@@ -1,49 +1,34 @@
 'use client';
 
+import { Home, PlusCircle, Gamepad2 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
-const NavItem = ({ href, children }: { href: string; children: React.ReactNode }) => {
+const NavItem = ({ href, icon: Icon, label }: { href: string; icon: any; label: string }) => {
   const pathname = usePathname();
   const isActive = pathname === href;
-  
+
   return (
-    <Link 
+    <Link
       href={href}
-      className={`flex flex-col items-center justify-center p-2 rounded-lg transition-colors ${
-        isActive ? 'text-blue-600' : 'text-gray-500 hover:text-gray-700'
-      }`}
+      className={`flex flex-col items-center justify-center gap-1 transition-colors ${isActive ? 'text-orange-500' : 'text-gray-400 hover:text-gray-600'
+        }`}
     >
-      {children}
+      <div className={`p-2 rounded-xl ${isActive ? 'bg-orange-50' : ''}`}>
+        <Icon className={`w-6 h-6 ${isActive ? 'fill-current' : ''}`} strokeWidth={isActive ? 2.5 : 2} />
+      </div>
+      <span className="text-[10px] font-medium">{label}</span>
     </Link>
   );
 };
 
 export default function BottomNav() {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg">
-      <div className="flex justify-around items-center h-16 px-4">
-        <NavItem href="/">
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-          </svg>
-          <span className="text-xs mt-1">Home</span>
-        </NavItem>
-        
-        <NavItem href="/create">
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-          </svg>
-          <span className="text-xs mt-1">Create</span>
-        </NavItem>
-        
-        <NavItem href="/play">
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <span className="text-xs mt-1">Play</span>
-        </NavItem>
+    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 pb-safe pt-2 px-6 rounded-t-[30px] shadow-[0_-10px_40px_rgba(0,0,0,0.05)] z-50">
+      <div className="flex justify-around items-center h-16 max-w-md mx-auto">
+        <NavItem href="/" icon={Home} label="Home" />
+        <NavItem href="/create" icon={PlusCircle} label="Create" />
+        <NavItem href="/play" icon={Gamepad2} label="Play" />
       </div>
     </nav>
   );
