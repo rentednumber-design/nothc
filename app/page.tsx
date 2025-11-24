@@ -2,8 +2,10 @@
 import { useEffect, useState } from "react";
 import { Trophy, Gift, Zap, ChevronRight, Music, Clapperboard, Shirt, Microscope } from "lucide-react";
 import Link from "next/link";
+import { getOrCreateUser } from "@/services/userService";
+import { User } from "@/types/user";
 
-interface UserData {
+interface TelegramUser {
   id: number;
   first_name: string;
   last_name?: string;
@@ -22,7 +24,7 @@ const categories = [
 ];
 
 export default function Home() {
-  const [userData, setUserData] = useState<UserData | null>(null);
+  const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -31,18 +33,34 @@ export default function Home() {
       try {
         const { default: WebApp } = await import("@twa-dev/sdk");
         if (WebApp?.initDataUnsafe?.user && mounted) {
-          setUserData(WebApp.initDataUnsafe.user as UserData);
+          const telegramUser = WebApp.initDataUnsafe.user as TelegramUser;
+          // Get or create user in database
+          const { data: dbUser } = await getOrCreateUser({
+            id: telegramUser.id,
+            first_name: telegramUser.first_name,
+            last_name: telegramUser.last_name,
+            username: telegramUser.username,
+            photo_url: telegramUser.photo_url,
+            language_code: telegramUser.language_code,
+            is_premium: telegramUser.is_premium,
+          });
+          if (dbUser && mounted) {
+            setUser(dbUser);
+          }
         }
       } catch (e) {
         if (mounted) {
-          setUserData({
+          // Fallback for development
+          const { data: dbUser } = await getOrCreateUser({
             id: 1,
             first_name: "Roxane",
             last_name: "Harley",
-            photo_url: "https://api.dicebear.com/7.x/avataaars/svg?seed=Roxane",
             language_code: "en",
             is_premium: true,
           });
+          if (dbUser) {
+            setUser(dbUser);
+          }
         }
       }
     };
@@ -52,26 +70,36 @@ export default function Home() {
     };
   }, []);
 
+  const getLevel = (rating: number) => {
+    if (rating >= 2000) return "Master";
+    if (rating >= 1000) return "Expert";
+    if (rating >= 500) return "Pro";
+    if (rating >= 100) return "Apprentice";
+    return "Novice";
+  };
+
   return (
     <div className="min-h-screen pb-24 pt-12 px-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white shadow-sm">
-            {userData?.photo_url ? (
-              <img src={userData.photo_url} alt="Profile" className="w-full h-full object-cover" />
+            {user?.photo_url ? (
+              <img src={user.photo_url} alt="Profile" className="w-full h-full object-cover" />
             ) : (
               <div className="w-full h-full bg-purple-200 flex items-center justify-center text-purple-700 font-bold">
-                {userData?.first_name?.[0] || "?"}
+                {user?.first_name?.[0] || "?"}
               </div>
             )}
           </div>
           <div>
             <h1 className="text-white font-bold text-lg leading-tight">
-              {userData ? `${userData.first_name} ${userData.last_name || ""}`.trim() : "Loading..."}
+              {user ? `${user.first_name} ${user.last_name || ""}`.trim() : "Loading..."}
             </h1>
             <div className="inline-flex items-center px-2 py-0.5 bg-white/20 backdrop-blur-sm rounded-full border border-white/20">
-              <span className="text-[10px] text-white font-medium">Expert</span>
+              <span className="text-[10px] text-white font-medium">
+                {user ? getLevel(user.rating) : "Novice"}
+              </span>
             </div>
           </div>
         </div>
@@ -80,7 +108,9 @@ export default function Home() {
           <div className="w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center">
             <Zap className="w-3.5 h-3.5 text-white fill-current" />
           </div>
-          <span className="text-sm font-bold text-gray-800">1200</span>
+          <span className="text-sm font-bold text-gray-800">
+            {user ? user.rating : 0}
+          </span>
         </div>
       </div>
 

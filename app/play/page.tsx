@@ -1,10 +1,12 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
-import { ArrowLeft, Bookmark, Clock, Users, Zap, SkipForward, Check, X, Gamepad2, Loader2 } from 'lucide-react';
+import { ArrowLeft, Bookmark, Clock, Users, Zap, SkipForward, Check, X, Gamepad2, Loader2, TrendingUp } from 'lucide-react';
 import Link from 'next/link';
 import { getQuizByCode } from '@/services/quizService';
+import { getOrCreateUser, saveQuizResult } from '@/services/userService';
 import { Quiz } from '@/types/quiz';
+import { User } from '@/types/user';
 import { useSearchParams } from 'next/navigation';
 
 function PlayPageContent() {
@@ -19,8 +21,55 @@ function PlayPageContent() {
     const [selectedOption, setSelectedOption] = useState<string | null>(null);
     const [timeLeft, setTimeLeft] = useState(20);
     const [score, setScore] = useState(0);
+    const [correctAnswersCount, setCorrectAnswersCount] = useState(0);
+
+    // User and rating state
+    const [user, setUser] = useState<User | null>(null);
+    const [ratingEarned, setRatingEarned] = useState(0);
+    const [savingResult, setSavingResult] = useState(false);
 
     const searchParams = useSearchParams();
+
+    // Load user from Telegram WebApp
+    useEffect(() => {
+        let mounted = true;
+        const loadUser = async () => {
+            if (typeof window === 'undefined') return;
+            try {
+                const { default: WebApp } = await import('@twa-dev/sdk');
+                if (WebApp?.initDataUnsafe?.user && mounted) {
+                    const telegramUser = WebApp.initDataUnsafe.user;
+                    // Get or create user in database
+                    const { data: dbUser } = await getOrCreateUser({
+                        id: telegramUser.id,
+                        first_name: telegramUser.first_name,
+                        last_name: telegramUser.last_name,
+                        username: telegramUser.username,
+                        photo_url: telegramUser.photo_url,
+                        language_code: telegramUser.language_code,
+                        is_premium: telegramUser.is_premium,
+                    });
+                    if (dbUser) setUser(dbUser);
+                }
+            } catch (e) {
+                // Fallback for development
+                if (mounted) {
+                    const { data: dbUser } = await getOrCreateUser({
+                        id: 1,
+                        first_name: 'Roxane',
+                        last_name: 'Harley',
+                        language_code: 'en',
+                        is_premium: true,
+                    });
+                    if (dbUser) setUser(dbUser);
+                }
+            }
+        };
+        loadUser();
+        return () => {
+            mounted = false;
+        };
+    }, []);
 
     // Check for code parameter in URL and auto-load quiz
     useEffect(() => {
@@ -73,6 +122,30 @@ function PlayPageContent() {
         await loadQuizByCode(gameCode);
     };
 
+    const saveQuizCompletion = async () => {
+        if (!user || !quiz) {
+            setStatus('FINISHED');
+            return;
+        }
+
+        setSavingResult(true);
+        try {
+            const { ratingEarned: earned } = await saveQuizResult(
+                user.id,
+                quiz.id,
+                score,
+                quiz.questions.length,
+                correctAnswersCount
+            );
+            setRatingEarned(earned);
+        } catch (error) {
+            console.error('Error saving quiz result:', error);
+        } finally {
+            setSavingResult(false);
+            setStatus('FINISHED');
+        }
+    };
+
     const handleOptionSelect = (optionId: string, isCorrect: boolean) => {
         if (selectedOption) return; // Prevent changing answer
 
@@ -82,6 +155,7 @@ function PlayPageContent() {
             // Time bonus: up to 100 points (5 points per second remaining)
             const timeBonus = timeLeft * 5;
             setScore(prev => prev + 100 + timeBonus);
+            setCorrectAnswersCount(prev => prev + 1);
         }
 
         // Auto advance after delay
@@ -91,7 +165,8 @@ function PlayPageContent() {
                 setSelectedOption(null);
                 setTimeLeft(20);
             } else {
-                setStatus('FINISHED');
+                // Quiz finished - save result
+                saveQuizCompletion();
             }
         }, 1500);
     };
@@ -143,6 +218,8 @@ function PlayPageContent() {
 
     // Render Finished
     if (status === 'FINISHED') {
+        const newRating = user ? user.rating + ratingEarned : 0;
+
         return (
             <div className="min-h-screen bg-gradient-to-b from-[#a78bfa] to-[#f3e8ff] flex flex-col items-center justify-center p-6">
                 <div className="bg-white/30 backdrop-blur-xl border border-white/40 rounded-[32px] p-8 shadow-xl text-center w-full max-w-md">
@@ -154,11 +231,37 @@ function PlayPageContent() {
                     <div className="text-6xl font-black text-white mb-8 drop-shadow-md">
                         {score}
                     </div>
+
+                    {/* Rating Earned Section */}
+                    {user && ratingEarned > 0 && (
+                        <div className="bg-white/20 backdrop-blur-md border border-white/30 rounded-2xl p-4 mb-6">
+                            <div className="flex items-center justify-center gap-2 mb-2">
+                                <TrendingUp className="w-5 h-5 text-green-300" />
+                                <span className="text-white/90 text-sm font-medium">Rating Earned</span>
+                            </div>
+                            <div className="text-3xl font-bold text-green-300 mb-1">
+                                +{ratingEarned}
+                            </div>
+                            <div className="text-white/70 text-xs">
+                                New Rating: {newRating}
+                            </div>
+                        </div>
+                    )}
+
+                    {savingResult && (
+                        <div className="flex items-center justify-center gap-2 mb-4 text-white/80 text-sm">
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <span>Saving results...</span>
+                        </div>
+                    )}
+
                     <button
                         onClick={() => {
                             setStatus('LOBBY');
                             setGameCode('');
                             setScore(0);
+                            setCorrectAnswersCount(0);
+                            setRatingEarned(0);
                         }}
                         className="w-full bg-white text-purple-600 font-bold text-lg py-4 rounded-2xl shadow-md hover:bg-gray-50 transition-colors"
                     >
