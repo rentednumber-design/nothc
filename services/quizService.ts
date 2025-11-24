@@ -11,7 +11,7 @@ export const saveQuiz = async (quizData: CreateQuizDTO) => {
     // Generate a unique game code
     let gameCode: number = 0;
     let isCodeUnique = false;
-    
+
     // Keep generating until we find a unique code
     while (!isCodeUnique) {
       const newCode = generateGameCode();
@@ -20,7 +20,7 @@ export const saveQuiz = async (quizData: CreateQuizDTO) => {
         .select('id')
         .eq('game_code', newCode.toString())
         .single();
-      
+
       if (!existingQuiz) {
         gameCode = newCode;
         isCodeUnique = true;
@@ -38,7 +38,7 @@ export const saveQuiz = async (quizData: CreateQuizDTO) => {
       .insert(quizToSave)
       .select()
       .single();
-      
+
     // Parse questions back to object when returning
     if (data) {
       data.questions = JSON.parse(data.questions);
@@ -61,12 +61,12 @@ export const getQuizByCode = async (code: string) => {
       .single();
 
     if (error) throw error;
-    
+
     // Parse questions from JSON string
     if (data) {
       data.questions = JSON.parse(data.questions);
     }
-    
+
     return { data, error: null };
   } catch (error) {
     console.error('Error fetching quiz:', error);
@@ -83,17 +83,34 @@ export const getUserQuizzes = async (userId: string) => {
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    
+
     // Parse questions from JSON string for each quiz
     if (data) {
       data.forEach(quiz => {
         quiz.questions = JSON.parse(quiz.questions);
       });
     }
-    
+
     return { data, error: null };
   } catch (error) {
     console.error('Error fetching user quizzes:', error);
+    return { data: null, error };
+  }
+};
+
+export const updateQuizStatus = async (gameCode: string, status: 'waiting' | 'started' | 'finished') => {
+  try {
+    const { data, error } = await supabase
+      .from('quizzes')
+      .update({ status })
+      .eq('game_code', gameCode)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return { data, error: null };
+  } catch (error) {
+    console.error('Error updating quiz status:', error);
     return { data: null, error };
   }
 };

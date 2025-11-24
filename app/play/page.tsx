@@ -1,16 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Trophy, Timer, CheckCircle, XCircle, AlertCircle } from "lucide-react";
+import { ArrowLeft, Trophy, Timer, CheckCircle, XCircle, AlertCircle, User, Loader2 } from "lucide-react";
 import { getQuizByCode } from "@/services/quizService";
 import { Quiz } from "@/types/quiz";
+import { createClient } from "@/lib/supabase/client";
 
-type GameState = "input" | "playing" | "finished";
+type GameState = "input" | "username" | "lobby" | "playing" | "finished";
 
 export default function PlayPage() {
     const router = useRouter();
+    const supabase = createClient();
     const [gameCode, setGameCode] = useState("");
+    const [username, setUsername] = useState("");
     const [gameState, setGameState] = useState<GameState>("input");
     const [quiz, setQuiz] = useState<Quiz | null>(null);
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -20,7 +23,51 @@ export default function PlayPage() {
     const [selectedOption, setSelectedOption] = useState<string | null>(null);
     const [isAnswerChecked, setIsAnswerChecked] = useState(false);
 
-    const handleJoinGame = async (e: React.FormEvent) => {
+    // Subscribe to quiz status changes when in lobby
+    useEffect(() => {
+        if (gameState === "lobby" && quiz) {
+            const channel = supabase
+                .channel(`quiz_status_${quiz.game_code}`)
+                .on(
+                    'postgres_changes',
+                    {
+                        event: 'UPDATE',
+                        schema: 'public',
+                        table: 'quizzes',
+                        filter: `game_code=eq.${quiz.game_code}`
+                    },
+                    (payload) => {
+                        const newStatus = payload.new.status;
+                        if (newStatus === 'started') {
+                            setGameState("playing");
+                        }
+                    }
+                )
+                .subscribe();
+
+            // Also track presence so host can see us
+            const presenceChannel = supabase.channel(`quiz_${quiz.game_code}`);
+            presenceChannel
+                .on('presence', { event: 'sync' }, () => {
+                    // We don't need to do anything with presence here, just broadcasting
+                })
+                .subscribe(async (status) => {
+                    if (status === 'SUBSCRIBED') {
+                        await presenceChannel.track({
+                            username: username,
+                            joinedAt: new Date().toISOString(),
+                        });
+                    }
+                });
+
+            return () => {
+                supabase.removeChannel(channel);
+                supabase.removeChannel(presenceChannel);
+            };
+        }
+    }, [gameState, quiz, username]);
+
+    const handleCheckCode = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!gameCode.trim()) return;
 
@@ -34,14 +81,32 @@ export default function PlayPage() {
                 setError("Quiz not found. Please check the code and try again.");
             } else {
                 setQuiz(data);
-                setGameState("playing");
-                setCurrentQuestionIndex(0);
-                setScore(0);
+                if (data.status === 'started') {
+                    // If already started, maybe allow join or show error?
+                    // For now, let's allow join if we want late joiners, or block.
+                    // Let's assume late join is okay for now, or just go to username
+                    setGameState("username");
+                } else if (data.status === 'finished') {
+                    setError("This quiz has already finished.");
+                } else {
+                    setGameState("username");
+                }
             }
         } catch (err) {
             setError("An error occurred. Please try again.");
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleJoinLobby = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!username.trim()) return;
+
+        if (quiz?.status === 'started') {
+            setGameState("playing");
+        } else {
+            setGameState("lobby");
         }
     };
 
@@ -77,6 +142,7 @@ export default function PlayPage() {
     const resetGame = () => {
         setGameState("input");
         setGameCode("");
+        setUsername("");
         setQuiz(null);
         setCurrentQuestionIndex(0);
         setScore(0);
@@ -107,7 +173,7 @@ export default function PlayPage() {
                             <p className="text-white/80">Enter the game code to start playing</p>
                         </div>
 
-                        <form onSubmit={handleJoinGame} className="space-y-4">
+                        <form onSubmit={handleCheckCode} className="space-y-4">
                             <div className="bg-white/20 backdrop-blur-md rounded-3xl p-2 border border-white/30 shadow-lg">
                                 <input
                                     type="text"
@@ -131,9 +197,81 @@ export default function PlayPage() {
                                 disabled={loading || gameCode.length < 4}
                                 className="w-full bg-white text-purple-600 font-bold text-lg py-4 rounded-3xl shadow-lg hover:bg-purple-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95"
                             >
-                                {loading ? "Joining..." : "Enter Game"}
+                                {loading ? "Checking..." : "Next"}
                             </button>
                         </form>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    if (gameState === "username") {
+        return (
+            <div className="min-h-screen bg-linear-to-br from-purple-300 via-purple-500 to-purple-100 flex flex-col">
+                <div className="p-6">
+                    <button
+                        onClick={() => setGameState("input")}
+                        className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-white/30 transition-colors"
+                    >
+                        <ArrowLeft className="w-6 h-6" />
+                    </button>
+                </div>
+
+                <div className="flex-1 flex flex-col items-center justify-center px-6 -mt-20">
+                    <div className="w-full max-w-md">
+                        <div className="text-center mb-8">
+                            <div className="w-20 h-20 bg-white/20 backdrop-blur-md rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-lg border border-white/30">
+                                <User className="w-10 h-10 text-white" />
+                            </div>
+                            <h1 className="text-3xl font-bold text-white mb-2">Pick a Name</h1>
+                            <p className="text-white/80">What should we call you?</p>
+                        </div>
+
+                        <form onSubmit={handleJoinLobby} className="space-y-4">
+                            <div className="bg-white/20 backdrop-blur-md rounded-3xl p-2 border border-white/30 shadow-lg">
+                                <input
+                                    type="text"
+                                    value={username}
+                                    onChange={(e) => setUsername(e.target.value.slice(0, 15))}
+                                    placeholder="Username"
+                                    className="w-full bg-transparent border-none text-center text-2xl font-bold text-white placeholder-white/40 focus:ring-0 py-4"
+                                    autoFocus
+                                />
+                            </div>
+
+                            <button
+                                type="submit"
+                                disabled={username.length < 2}
+                                className="w-full bg-white text-purple-600 font-bold text-lg py-4 rounded-3xl shadow-lg hover:bg-purple-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95"
+                            >
+                                Join Game
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    if (gameState === "lobby") {
+        return (
+            <div className="min-h-screen bg-linear-to-br from-purple-300 via-purple-500 to-purple-100 flex flex-col items-center justify-center p-6">
+                <div className="w-full max-w-md bg-white/20 backdrop-blur-md rounded-3xl p-8 border border-white/30 shadow-xl text-center">
+                    <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
+                        <Loader2 className="w-10 h-10 text-white animate-spin" />
+                    </div>
+
+                    <h2 className="text-2xl font-bold text-white mb-2">You're In!</h2>
+                    <p className="text-white/80 mb-6">Waiting for host to start the game...</p>
+
+                    <div className="bg-white/10 rounded-2xl p-4 mb-6">
+                        <div className="text-sm text-white/60 mb-1">Playing as</div>
+                        <div className="text-xl font-bold text-white">{username}</div>
+                    </div>
+
+                    <div className="text-white/60 text-sm">
+                        Keep this screen open
                     </div>
                 </div>
             </div>
@@ -149,18 +287,16 @@ export default function PlayPage() {
                 {/* Header */}
                 <div className="px-6 pt-8 pb-4">
                     <div className="flex items-center justify-between mb-6">
-                        <button
-                            onClick={() => setGameState("input")}
-                            className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-white/30 transition-colors"
-                        >
-                            <ArrowLeft className="w-6 h-6" />
-                        </button>
                         <div className="px-4 py-1 bg-white/20 backdrop-blur-sm rounded-full border border-white/30">
                             <span className="text-white font-medium text-sm">
                                 {currentQuestionIndex + 1} / {quiz.questions.length}
                             </span>
                         </div>
-                        <div className="w-10" /> {/* Spacer */}
+                        <div className="px-4 py-1 bg-white/20 backdrop-blur-sm rounded-full border border-white/30">
+                            <span className="text-white font-medium text-sm">
+                                {username}
+                            </span>
+                        </div>
                     </div>
 
                     {/* Progress Bar */}
