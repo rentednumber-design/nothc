@@ -5,6 +5,7 @@ import { ArrowLeft, Bookmark, Clock, Users, Zap, SkipForward, Check, X, Gamepad2
 import Link from 'next/link';
 import { getQuizByCode } from '@/services/quizService';
 import { Quiz } from '@/types/quiz';
+import { useSearchParams } from 'next/navigation';
 
 export default function PlayPage() {
     // State
@@ -19,28 +20,23 @@ export default function PlayPage() {
     const [timeLeft, setTimeLeft] = useState(20);
     const [score, setScore] = useState(0);
 
-    // Timer Effect
+    const searchParams = useSearchParams();
+
+    // Check for code parameter in URL and auto-load quiz
     useEffect(() => {
-        if (status === 'PLAYING' && timeLeft > 0 && !selectedOption) {
-            const timer = setInterval(() => {
-                setTimeLeft((prev) => prev - 1);
-            }, 1000);
-            return () => clearInterval(timer);
-        } else if (timeLeft === 0 && !selectedOption) {
-            // Time's up logic - maybe auto-select wrong or just show answer
-            // For now, let's just let it sit at 0
+        const codeFromUrl = searchParams.get('code');
+        if (codeFromUrl && status === 'LOBBY') {
+            setGameCode(codeFromUrl);
+            loadQuizByCode(codeFromUrl);
         }
-    }, [timeLeft, status, selectedOption]);
+    }, [searchParams]);
 
-    const handleJoinGame = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!gameCode.trim()) return;
-
+    const loadQuizByCode = async (code: string) => {
         setLoading(true);
         setError(null);
 
         try {
-            const { data, error } = await getQuizByCode(gameCode);
+            const { data, error } = await getQuizByCode(code);
 
             if (error || !data) {
                 setError('Invalid game code. Please try again.');
@@ -58,12 +54,34 @@ export default function PlayPage() {
         }
     };
 
+    // Timer Effect
+    useEffect(() => {
+        if (status === 'PLAYING' && timeLeft > 0 && !selectedOption) {
+            const timer = setInterval(() => {
+                setTimeLeft((prev) => prev - 1);
+            }, 1000);
+            return () => clearInterval(timer);
+        } else if (timeLeft === 0 && !selectedOption) {
+            // Time's up logic - maybe auto-select wrong or just show answer
+            // For now, let's just let it sit at 0
+        }
+    }, [timeLeft, status, selectedOption]);
+
+    const handleJoinGame = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!gameCode.trim()) return;
+        await loadQuizByCode(gameCode);
+    };
+
     const handleOptionSelect = (optionId: string, isCorrect: boolean) => {
         if (selectedOption) return; // Prevent changing answer
 
         setSelectedOption(optionId);
         if (isCorrect) {
-            setScore(prev => prev + 100 + (timeLeft * 5)); // Score calculation
+            // Base points: 100
+            // Time bonus: up to 100 points (5 points per second remaining)
+            const timeBonus = timeLeft * 5;
+            setScore(prev => prev + 100 + timeBonus);
         }
 
         // Auto advance after delay
@@ -195,8 +213,11 @@ export default function PlayPage() {
             <div className="space-y-3 mb-8">
                 {currentQuestion?.options.map((option, idx) => {
                     const isSelected = selectedOption === option.id;
-                    const showCorrect = selectedOption && option.isCorrect;
-                    const showWrong = isSelected && !option.isCorrect;
+                    const isCorrectAnswer = option.isCorrect;
+
+                    // Only show feedback on the selected option
+                    const showCorrect = isSelected && isCorrectAnswer;
+                    const showWrong = isSelected && !isCorrectAnswer;
 
                     let cardStyle = 'bg-white border-transparent';
                     if (showCorrect) cardStyle = 'bg-[#ccfbf1] border-[#2dd4bf]';
@@ -211,8 +232,8 @@ export default function PlayPage() {
                         >
                             <div className="flex items-center gap-4">
                                 <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${showCorrect ? 'bg-[#2dd4bf] text-white' :
-                                        showWrong ? 'bg-red-400 text-white' :
-                                            'bg-gray-100 text-gray-500'
+                                    showWrong ? 'bg-red-400 text-white' :
+                                        'bg-gray-100 text-gray-500'
                                     }`}>
                                     {String.fromCharCode(65 + idx)}
                                 </span>

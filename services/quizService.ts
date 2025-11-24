@@ -113,3 +113,45 @@ export const getUserQuizzes = async (userId: string) => {
     return { data: null, error };
   }
 };
+
+export const getQuizByCategory = async (category: string) => {
+  try {
+    const gameCode = category.toUpperCase();
+    return await getQuizByCode(gameCode);
+  } catch (error) {
+    console.error('Error fetching quiz by category:', error);
+    return { data: null, error };
+  }
+};
+
+export const getAllPublicQuizzes = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('quizzes')
+      .select('*')
+      .eq('is_public', true)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    // Parse questions from JSON string for each quiz
+    if (data) {
+      data.forEach(quiz => {
+        const parsedQuestions = JSON.parse(quiz.questions);
+        // Normalize questions
+        quiz.questions = parsedQuestions.map((q: any) => ({
+          ...q,
+          options: q.options.map((opt: any) => ({
+            ...opt,
+            isCorrect: opt.isCorrect !== undefined ? opt.isCorrect : opt.is_correct
+          }))
+        }));
+      });
+    }
+
+    return { data, error: null };
+  } catch (error) {
+    console.error('Error fetching public quizzes:', error);
+    return { data: null, error };
+  }
+};

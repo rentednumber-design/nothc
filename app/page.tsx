@@ -131,12 +131,12 @@ export default function Home() {
 
         <div className="grid grid-cols-5 gap-3">
           {categories.map((cat) => (
-            <div key={cat.id} className="flex flex-col items-center gap-2 group cursor-pointer">
+            <Link href={`/play?code=${cat.name.toUpperCase()}`} key={cat.id} className="flex flex-col items-center gap-2 group cursor-pointer">
               <div className={`w-14 h-14 ${cat.color} backdrop-blur-md bg-opacity-90 rounded-2xl flex items-center justify-center shadow-sm border border-white/50 group-hover:-translate-y-1 transition-transform duration-300`}>
                 {typeof cat.icon === 'string' ? <span className="text-2xl">{cat.icon}</span> : cat.icon}
               </div>
               <span className="text-white text-[10px] font-medium text-center opacity-90">{cat.name}</span>
-            </div>
+            </Link>
           ))}
         </div>
       </div>
@@ -149,14 +149,14 @@ export default function Home() {
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-          <Link href="/play" className="bg-white rounded-[28px] p-4 shadow-sm hover:shadow-md transition-shadow group">
+          <Link href="/play?code=LANGUAGE" className="bg-white rounded-[28px] p-4 shadow-sm hover:shadow-md transition-shadow group">
             <div className="aspect-square bg-gray-50 rounded-2xl mb-3 flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
               <div className="relative">
                 <span className="text-5xl filter drop-shadow-sm">⚔️</span>
               </div>
             </div>
             <h4 className="font-bold text-gray-800 text-sm mb-0.5">Language Quiz</h4>
-            <p className="text-gray-400 text-[10px] mb-3">15 Questions</p>
+            <p className="text-gray-400 text-[10px] mb-3">5 Questions</p>
             <div className="flex items-center gap-1">
               <div className="flex items-center gap-1 text-orange-500">
                 <Zap className="w-3 h-3 fill-current" />
@@ -165,14 +165,14 @@ export default function Home() {
             </div>
           </Link>
 
-          <Link href="/play" className="bg-white rounded-[28px] p-4 shadow-sm hover:shadow-md transition-shadow group">
+          <Link href="/play?code=EXAM" className="bg-white rounded-[28px] p-4 shadow-sm hover:shadow-md transition-shadow group">
             <div className="aspect-square bg-gray-50 rounded-2xl mb-3 flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
               <div className="relative">
                 <span className="text-5xl filter drop-shadow-sm">🧭</span>
               </div>
             </div>
             <h4 className="font-bold text-gray-800 text-sm mb-0.5">Exam Quiz</h4>
-            <p className="text-gray-400 text-[10px] mb-3">12 Questions</p>
+            <p className="text-gray-400 text-[10px] mb-3">5 Questions</p>
             <div className="flex items-center gap-1">
               <div className="flex items-center gap-1 text-orange-500">
                 <Zap className="w-3 h-3 fill-current" />
