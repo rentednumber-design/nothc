@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { ArrowLeft, Bookmark, Clock, Users, Zap, SkipForward, Check, X, Gamepad2, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { getQuizByCode } from '@/services/quizService';
 import { Quiz } from '@/types/quiz';
 import { useSearchParams } from 'next/navigation';
 
-export default function PlayPage() {
+function PlayPageContent() {
     // State
     const [gameCode, setGameCode] = useState('');
     const [status, setStatus] = useState<'LOBBY' | 'PLAYING' | 'FINISHED'>('LOBBY');
@@ -277,3 +277,16 @@ export default function PlayPage() {
         </div>
     );
 }
+
+export default function PlayPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen bg-gradient-to-b from-[#a78bfa] to-[#f3e8ff] flex items-center justify-center">
+                <Loader2 className="w-12 h-12 text-white animate-spin" />
+            </div>
+        }>
+            <PlayPageContent />
+        </Suspense>
+    );
+}
+
