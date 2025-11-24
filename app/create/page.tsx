@@ -102,6 +102,22 @@ export default function CreatePage() {
     );
   };
 
+  const setCorrectOption = (questionId: string, optionId: string) => {
+    setQuestions(
+      questions.map((q) =>
+        q.id === questionId
+          ? {
+            ...q,
+            options: q.options.map((opt) => ({
+              ...opt,
+              isCorrect: opt.id === optionId,
+            })),
+          }
+          : q
+      )
+    );
+  };
+
   const removeOption = (questionId: string, optionId: string) => {
     setQuestions(
       questions.map((q) =>
@@ -213,7 +229,7 @@ export default function CreatePage() {
           ...q,
           options: q.options.map(opt => ({
             text: opt.text,
-            is_correct: opt.isCorrect
+            isCorrect: opt.isCorrect
           }))
         }))
       } as any);
@@ -333,8 +349,8 @@ export default function CreatePage() {
                   key={q.id}
                   onClick={() => setCurrentQuestionIndex(index)}
                   className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center font-medium transition-all ${currentQuestionIndex === index
-                      ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200 scale-110'
-                      : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200 scale-110'
+                    : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
                     }`}
                 >
                   {index + 1}
@@ -394,18 +410,14 @@ export default function CreatePage() {
                           type="radio"
                           name={`correct-answer-${currentQuestion.id}`}
                           checked={option.isCorrect}
-                          onChange={() =>
-                            updateOption(currentQuestion.id, option.id, {
-                              isCorrect: true,
-                            })
-                          }
+                          onChange={() => setCorrectOption(currentQuestion.id, option.id)}
                           className="peer sr-only"
                         />
                         <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center cursor-pointer transition-all ${option.isCorrect
-                            ? 'border-green-500 bg-green-500 text-white'
-                            : 'border-gray-300 hover:border-gray-400'
+                          ? 'border-green-500 bg-green-500 text-white'
+                          : 'border-gray-300 hover:border-gray-400'
                           }`}
-                          onClick={() => updateOption(currentQuestion.id, option.id, { isCorrect: true })}
+                          onClick={() => setCorrectOption(currentQuestion.id, option.id)}
                         >
                           {option.isCorrect && (
                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

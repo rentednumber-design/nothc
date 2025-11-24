@@ -64,7 +64,15 @@ export const getQuizByCode = async (code: string) => {
 
     // Parse questions from JSON string
     if (data) {
-      data.questions = JSON.parse(data.questions);
+      const parsedQuestions = JSON.parse(data.questions);
+      // Normalize questions to ensure isCorrect is present (handling legacy is_correct)
+      data.questions = parsedQuestions.map((q: any) => ({
+        ...q,
+        options: q.options.map((opt: any) => ({
+          ...opt,
+          isCorrect: opt.isCorrect !== undefined ? opt.isCorrect : opt.is_correct
+        }))
+      }));
     }
 
     return { data, error: null };
@@ -87,7 +95,15 @@ export const getUserQuizzes = async (userId: string) => {
     // Parse questions from JSON string for each quiz
     if (data) {
       data.forEach(quiz => {
-        quiz.questions = JSON.parse(quiz.questions);
+        const parsedQuestions = JSON.parse(quiz.questions);
+        // Normalize questions
+        quiz.questions = parsedQuestions.map((q: any) => ({
+          ...q,
+          options: q.options.map((opt: any) => ({
+            ...opt,
+            isCorrect: opt.isCorrect !== undefined ? opt.isCorrect : opt.is_correct
+          }))
+        }));
       });
     }
 
