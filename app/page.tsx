@@ -137,7 +137,7 @@ export default function Home() {
                 </div>
               </div>
             </div>
-            <p className="text-white/80 text-xs mb-3">14 Questions</p>
+            <p className="text-white/80 text-xs mb-3">Your Rating:{user?.rating}</p>
 
             <div className="space-y-1.5">
               <div className="h-2 bg-black/10 rounded-full overflow-hidden backdrop-blur-sm">
@@ -145,7 +145,7 @@ export default function Home() {
               </div>
               <div className="flex justify-between text-[10px] text-white/90 font-medium">
                 <span>Progress</span>
-                <span>9/14</span>
+                <span>{user?.rating}</span>
               </div>
             </div>
           </div>
