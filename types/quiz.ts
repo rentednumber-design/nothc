@@ -18,7 +18,6 @@ export type Quiz = {
   author_name: string;
   author_username: string;
   game_code: string;
-  status: 'waiting' | 'started' | 'finished';
   questions: Question[];
   created_at?: string;
   updated_at?: string;

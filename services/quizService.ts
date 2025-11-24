@@ -97,20 +97,3 @@ export const getUserQuizzes = async (userId: string) => {
     return { data: null, error };
   }
 };
-
-export const updateQuizStatus = async (gameCode: string, status: 'waiting' | 'started' | 'finished') => {
-  try {
-    const { data, error } = await supabase
-      .from('quizzes')
-      .update({ status })
-      .eq('game_code', gameCode)
-      .select()
-      .single();
-
-    if (error) throw error;
-    return { data, error: null };
-  } catch (error) {
-    console.error('Error updating quiz status:', error);
-    return { data: null, error };
-  }
-};
